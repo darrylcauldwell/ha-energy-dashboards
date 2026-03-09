@@ -1,0 +1,363 @@
+views:
+  - title: SolaX Energy
+    path: default_view
+    type: sections
+    sections:
+      # ── Section 1: At a Glance ──
+      - type: grid
+        cards:
+          - type: heading
+            heading: At a Glance
+            heading_style: title
+            icon: mdi:solar-power
+
+          - type: horizontal-stack
+            cards:
+              - type: gauge
+                entity: sensor.SOLAX_DEVICE_battery_state_of_charge
+                name: Battery
+                unit: "%"
+                min: 0
+                max: 100
+                severity:
+                  green: 50
+                  yellow: 20
+                  red: 0
+
+              - type: entity
+                entity: sensor.SOLAX_DEVICE_today_pv_energy
+                name: Today's Solar
+                icon: mdi:solar-power-variant
+
+              - type: markdown
+                content: >-
+                  {% set grid = states('sensor.SOLAX_DEVICE_grid_import_export') | float(0) %}
+                  {% if grid > 0 %}
+                  **Importing** {{ grid | round(0) | int }} W
+                  {% elif grid < 0 %}
+                  **Exporting** {{ (grid | abs) | round(0) | int }} W
+                  {% else %}
+                  **Grid Idle**
+                  {% endif %}
+                title: Grid
+
+          - type: markdown
+            content: >-
+              {% set pv1 = states('sensor.SOLAX_DEVICE_pv1_power') | float(0) %}
+              {% set pv2 = states('sensor.SOLAX_DEVICE_pv2_power') | float(0) %}
+              {% set bat_p = states('sensor.SOLAX_DEVICE_battery_power') | float(0) %}
+              {% set total_pv = states('sensor.SOLAX_DEVICE_total_pv_energy') | float(0) %}
+              {% set total_feed = states('sensor.SOLAX_DEVICE_total_feed_in_energy') | float(0) %}
+
+
+              | Metric | Value |
+              |--------|-------|
+              | **Solar Now** | {{ (pv1 + pv2) | round(0) | int }} W (PV1: {{ pv1 | round(0) | int }} + PV2: {{ pv2 | round(0) | int }}) |
+              | **Battery** | {% if bat_p > 0 %}Charging {{ bat_p | round(0) | int }} W{% elif bat_p < 0 %}Discharging {{ (bat_p | abs) | round(0) | int }} W{% else %}Idle{% endif %} |
+              | **Self-Consumption** | {% if total_pv > 0 %}{{ ((total_pv - total_feed) / total_pv * 100) | round(1) }}%{% else %}—{% endif %} (lifetime) |
+            title: System Summary
+
+      # ── Section 2: Solar Production ──
+      - type: grid
+        cards:
+          - type: heading
+            heading: Solar Production
+            heading_style: title
+            icon: mdi:solar-panel-large
+
+          - type: horizontal-stack
+            cards:
+              - type: gauge
+                entity: sensor.SOLAX_DEVICE_pv1_power
+                name: PV1 Power
+                unit: W
+                min: 0
+                max: 4000
+                severity:
+                  green: 1000
+                  yellow: 200
+                  red: 0
+
+              - type: gauge
+                entity: sensor.SOLAX_DEVICE_pv2_power
+                name: PV2 Power
+                unit: W
+                min: 0
+                max: 4000
+                severity:
+                  green: 1000
+                  yellow: 200
+                  red: 0
+
+          - type: horizontal-stack
+            cards:
+              - type: entities
+                title: PV1 Detail
+                entities:
+                  - entity: sensor.SOLAX_DEVICE_pv1_voltage
+                    name: Voltage
+                  - entity: sensor.SOLAX_DEVICE_pv1_current
+                    name: Current
+
+              - type: entities
+                title: PV2 Detail
+                entities:
+                  - entity: sensor.SOLAX_DEVICE_pv2_voltage
+                    name: Voltage
+                  - entity: sensor.SOLAX_DEVICE_pv2_current
+                    name: Current
+
+          - type: history-graph
+            title: PV Power (24h)
+            hours_to_show: 24
+            entities:
+              - entity: sensor.SOLAX_DEVICE_pv1_power
+                name: PV1
+              - entity: sensor.SOLAX_DEVICE_pv2_power
+                name: PV2
+
+      # ── Section 3: Battery ──
+      - type: grid
+        cards:
+          - type: heading
+            heading: Battery
+            heading_style: title
+            icon: mdi:battery-charging
+
+          - type: gauge
+            entity: sensor.SOLAX_DEVICE_battery_state_of_charge
+            name: State of Charge
+            unit: "%"
+            min: 0
+            max: 100
+            severity:
+              green: 50
+              yellow: 20
+              red: 0
+
+          - type: markdown
+            content: >-
+              {% set bp = states('sensor.SOLAX_DEVICE_battery_power') | float(0) %}
+              {% set bv = states('sensor.SOLAX_DEVICE_battery_voltage') | float(0) %}
+              {% set bc = states('sensor.SOLAX_DEVICE_battery_current') | float(0) %}
+
+
+              | Metric | Value |
+              |--------|-------|
+              | **Power** | {% if bp > 0 %}Charging {{ bp | round(0) | int }} W{% elif bp < 0 %}Discharging {{ (bp | abs) | round(0) | int }} W{% else %}Idle{% endif %} |
+              | **Voltage** | {{ bv | round(2) }} V |
+              | **Current** | {{ bc | round(2) }} A |
+            title: Battery Detail
+
+          - type: gauge
+            entity: sensor.SOLAX_DEVICE_battery_temperature
+            name: Battery Temp
+            unit: "°C"
+            min: 0
+            max: 60
+            severity:
+              green: 0
+              yellow: 35
+              red: 45
+
+          - type: history-graph
+            title: Battery (24h)
+            hours_to_show: 24
+            entities:
+              - entity: sensor.SOLAX_DEVICE_battery_state_of_charge
+                name: SOC (%)
+              - entity: sensor.SOLAX_DEVICE_battery_power
+                name: Power (W)
+
+      # ── Section 4: Grid Connection ──
+      - type: grid
+        cards:
+          - type: heading
+            heading: Grid Connection
+            heading_style: title
+            icon: mdi:transmission-tower
+
+          - type: horizontal-stack
+            cards:
+              - type: gauge
+                entity: sensor.SOLAX_DEVICE_grid_voltage
+                name: Grid Voltage
+                unit: V
+                min: 200
+                max: 260
+                severity:
+                  green: 225
+                  yellow: 215
+                  red: 200
+
+              - type: gauge
+                entity: sensor.SOLAX_DEVICE_grid_frequency
+                name: Grid Frequency
+                unit: Hz
+                min: 49.0
+                max: 51.0
+                severity:
+                  green: 49.8
+                  yellow: 49.5
+                  red: 49.0
+
+          - type: entities
+            title: Grid Detail
+            entities:
+              - entity: sensor.SOLAX_DEVICE_grid_power
+                name: Grid Power
+              - entity: sensor.SOLAX_DEVICE_grid_current
+                name: Grid Current
+              - entity: sensor.SOLAX_DEVICE_grid_import_export
+                name: Import/Export
+
+          - type: history-graph
+            title: Grid (24h)
+            hours_to_show: 24
+            entities:
+              - entity: sensor.SOLAX_DEVICE_grid_voltage
+                name: Voltage (V)
+              - entity: sensor.SOLAX_DEVICE_grid_frequency
+                name: Frequency (Hz)
+
+      # ── Section 5: System Health ──
+      - type: grid
+        cards:
+          - type: heading
+            heading: System Health
+            heading_style: title
+            icon: mdi:thermometer
+
+          - type: horizontal-stack
+            cards:
+              - type: gauge
+                entity: sensor.SOLAX_DEVICE_inverter_temperature
+                name: Inverter Temp
+                unit: "°C"
+                min: 0
+                max: 80
+                severity:
+                  green: 0
+                  yellow: 50
+                  red: 65
+
+              - type: gauge
+                entity: sensor.SOLAX_DEVICE_battery_temperature
+                name: Battery Temp
+                unit: "°C"
+                min: 0
+                max: 60
+                severity:
+                  green: 0
+                  yellow: 35
+                  red: 45
+
+      # ── Section 6: Energy Accounting ──
+      - type: grid
+        cards:
+          - type: heading
+            heading: Energy Accounting
+            heading_style: title
+            icon: mdi:counter
+
+          - type: entities
+            title: Lifetime Totals
+            entities:
+              - entity: sensor.SOLAX_DEVICE_total_pv_energy
+                name: Total PV Generation
+              - entity: sensor.SOLAX_DEVICE_total_feed_in_energy
+                name: Total Grid Export
+              - entity: sensor.SOLAX_DEVICE_total_consumption
+                name: Total Consumption
+
+          - type: markdown
+            content: >-
+              {% set total_pv = states('sensor.SOLAX_DEVICE_total_pv_energy') | float(0) %}
+              {% set total_feed = states('sensor.SOLAX_DEVICE_total_feed_in_energy') | float(0) %}
+
+
+              | Metric | Value |
+              |--------|-------|
+              | **Self-Consumption** | {% if total_pv > 0 %}{{ ((total_pv - total_feed) / total_pv * 100) | round(1) }}%{% else %}—{% endif %} |
+              | **Export Ratio** | {% if total_pv > 0 %}{{ (total_feed / total_pv * 100) | round(1) }}%{% else %}—{% endif %} |
+            title: Energy Ratios
+
+          - type: statistics-graph
+            title: Energy (7 days)
+            period: day
+            days_to_show: 7
+            stat_types:
+              - change
+            entities:
+              - entity: sensor.SOLAX_DEVICE_total_pv_energy
+                name: PV Generation
+              - entity: sensor.SOLAX_DEVICE_total_feed_in_energy
+                name: Grid Export
+              - entity: sensor.SOLAX_DEVICE_total_consumption
+                name: Consumption
+
+      # ── Section 7: All Sensors ──
+      - type: grid
+        cards:
+          - type: heading
+            heading: All Sensors
+            heading_style: title
+            icon: mdi:format-list-bulleted
+
+          - type: entities
+            title: Grid
+            entities:
+              - entity: sensor.SOLAX_DEVICE_grid_voltage
+                name: Voltage
+              - entity: sensor.SOLAX_DEVICE_grid_current
+                name: Current
+              - entity: sensor.SOLAX_DEVICE_grid_power
+                name: Power
+              - entity: sensor.SOLAX_DEVICE_grid_frequency
+                name: Frequency
+              - entity: sensor.SOLAX_DEVICE_grid_import_export
+                name: Import/Export
+
+          - type: entities
+            title: PV Strings
+            entities:
+              - entity: sensor.SOLAX_DEVICE_pv1_voltage
+                name: PV1 Voltage
+              - entity: sensor.SOLAX_DEVICE_pv1_current
+                name: PV1 Current
+              - entity: sensor.SOLAX_DEVICE_pv1_power
+                name: PV1 Power
+              - entity: sensor.SOLAX_DEVICE_pv2_voltage
+                name: PV2 Voltage
+              - entity: sensor.SOLAX_DEVICE_pv2_current
+                name: PV2 Current
+              - entity: sensor.SOLAX_DEVICE_pv2_power
+                name: PV2 Power
+
+          - type: entities
+            title: Battery
+            entities:
+              - entity: sensor.SOLAX_DEVICE_battery_voltage
+                name: Voltage
+              - entity: sensor.SOLAX_DEVICE_battery_current
+                name: Current
+              - entity: sensor.SOLAX_DEVICE_battery_power
+                name: Power
+              - entity: sensor.SOLAX_DEVICE_battery_temperature
+                name: Temperature
+              - entity: sensor.SOLAX_DEVICE_battery_state_of_charge
+                name: State of Charge
+
+          - type: entities
+            title: System & Totals
+            entities:
+              - entity: sensor.SOLAX_DEVICE_inverter_temperature
+                name: Inverter Temperature
+              - entity: sensor.SOLAX_DEVICE_today_pv_energy
+                name: Today PV Energy
+              - entity: sensor.SOLAX_DEVICE_total_pv_energy
+                name: Total PV Energy
+              - entity: sensor.SOLAX_DEVICE_total_feed_in_energy
+                name: Total Feed-in Energy
+              - entity: sensor.SOLAX_DEVICE_total_consumption
+                name: Total Consumption

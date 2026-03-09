@@ -1,0 +1,219 @@
+# UK Carbon Intensity Dashboard
+#
+# Lovelace dashboard template for the uk_carbon_intensity custom integration.
+# Entity IDs use CARBON_ placeholders which are replaced by
+# scripts/deploy_carbon_intensity.py at deploy time.
+#
+# The deploy script discovers entities by matching platform == "uk_carbon_intensity"
+# in the entity registry and mapping by translation_key.
+#
+# Sections:
+#   1. Regional Overview — custom card with gauge, 48h forecast, generation mix
+#   2. National vs Regional — side-by-side intensity comparison
+#   3. Energy Sources — low-carbon vs fossil breakdown
+#   4. Regional Comparison — custom card comparing all 14 DNO regions
+#   5. Trends — historical graphs
+
+views:
+  - title: UK Carbon Intensity
+    path: default_view
+    type: sections
+    sections:
+      # ── Section 1: Regional Overview ──
+      - type: grid
+        cards:
+          - type: heading
+            heading: Regional Overview
+            heading_style: title
+            icon: mdi:molecule-co2
+
+          - type: custom:uk-carbon-intensity-card
+            entity: sensor.CARBON_regional_intensity
+
+      # ── Section 2: National vs Regional ──
+      - type: grid
+        cards:
+          - type: heading
+            heading: National vs Regional
+            heading_style: title
+            icon: mdi:map-marker-multiple
+
+          - type: markdown
+            content: >-
+              {% set ri = states('sensor.CARBON_regional_intensity') | float(0) %}
+              {% set rx = states('sensor.CARBON_regional_index') %}
+              {% set ni = states('sensor.CARBON_national_intensity') | float(0) %}
+              {% set nx = states('sensor.CARBON_national_index') %}
+              {% set diff = ri - ni %}
+
+
+              | | Intensity | Index |
+              |--|-----------|-------|
+              | **Your Region** | {{ ri | round(0) | int }} gCO2/kWh | {{ rx | replace('_', ' ') | title }} |
+              | **National** | {{ ni | round(0) | int }} gCO2/kWh | {{ nx | replace('_', ' ') | title }} |
+              | **Difference** | {% if diff > 0 %}+{% endif %}{{ diff | round(0) | int }} | {% if diff > 20 %}Above avg{% elif diff < -20 %}Below avg{% else %}Near avg{% endif %} |
+            title: Comparison
+
+          - type: horizontal-stack
+            cards:
+              - type: gauge
+                entity: sensor.CARBON_regional_intensity
+                name: Regional
+                unit: gCO2/kWh
+                min: 0
+                max: 500
+                needle: true
+                segments:
+                  - from: 0
+                    color: "#1B9E77"
+                  - from: 40
+                    color: "#66C2A5"
+                  - from: 80
+                    color: "#FFD92F"
+                  - from: 180
+                    color: "#FC8D62"
+                  - from: 280
+                    color: "#E5584F"
+
+              - type: gauge
+                entity: sensor.CARBON_national_intensity
+                name: National
+                unit: gCO2/kWh
+                min: 0
+                max: 500
+                needle: true
+                segments:
+                  - from: 0
+                    color: "#1B9E77"
+                  - from: 40
+                    color: "#66C2A5"
+                  - from: 80
+                    color: "#FFD92F"
+                  - from: 180
+                    color: "#FC8D62"
+                  - from: 280
+                    color: "#E5584F"
+
+          - type: markdown
+            content: >-
+              {% set lowest = states('sensor.CARBON_lowest_forecast_intensity') | float(0) %}
+              {% set start = state_attr('sensor.CARBON_lowest_forecast_intensity', 'optimal_window_start') %}
+              {% set end = state_attr('sensor.CARBON_lowest_forecast_intensity', 'optimal_window_end') %}
+              {% if start %}
+              {% set t_start = as_timestamp(start) | timestamp_custom('%a %H:%M') %}
+              {% set t_end = as_timestamp(end) | timestamp_custom('%H:%M') %}
+              **Best window:** {{ t_start }} – {{ t_end }} at **{{ lowest | round(0) | int }}** gCO2/kWh
+              {% else %}
+              **Best window:** unavailable
+              {% endif %}
+            title: Optimal Low-Carbon Window
+
+      # ── Section 3: Energy Sources ──
+      - type: grid
+        cards:
+          - type: heading
+            heading: Energy Sources
+            heading_style: title
+            icon: mdi:lightning-bolt
+
+          - type: horizontal-stack
+            cards:
+              - type: gauge
+                entity: sensor.CARBON_low_carbon_percentage
+                name: Low Carbon
+                unit: "%"
+                min: 0
+                max: 100
+                needle: true
+                segments:
+                  - from: 0
+                    color: "#E5584F"
+                  - from: 25
+                    color: "#FC8D62"
+                  - from: 50
+                    color: "#FFD92F"
+                  - from: 75
+                    color: "#1B9E77"
+
+              - type: gauge
+                entity: sensor.CARBON_fossil_percentage
+                name: Fossil Fuel
+                unit: "%"
+                min: 0
+                max: 100
+                needle: true
+                segments:
+                  - from: 0
+                    color: "#1B9E77"
+                  - from: 25
+                    color: "#FFD92F"
+                  - from: 50
+                    color: "#FC8D62"
+                  - from: 75
+                    color: "#E5584F"
+
+          - type: entities
+            title: Generation Breakdown
+            entities:
+              - entity: sensor.CARBON_generation_gas
+                name: Gas
+                icon: mdi:fire
+              - entity: sensor.CARBON_generation_wind
+                name: Wind
+                icon: mdi:weather-windy
+              - entity: sensor.CARBON_generation_nuclear
+                name: Nuclear
+                icon: mdi:atom
+              - entity: sensor.CARBON_generation_solar
+                name: Solar
+                icon: mdi:white-balance-sunny
+
+          - type: history-graph
+            title: Generation Mix (24h)
+            hours_to_show: 24
+            entities:
+              - entity: sensor.CARBON_generation_wind
+                name: Wind
+              - entity: sensor.CARBON_generation_gas
+                name: Gas
+              - entity: sensor.CARBON_generation_nuclear
+                name: Nuclear
+              - entity: sensor.CARBON_generation_solar
+                name: Solar
+
+      # ── Section 4: Regional Comparison ──
+      - type: grid
+        cards:
+          - type: heading
+            heading: Regional Comparison
+            heading_style: title
+            icon: mdi:map
+
+          - type: custom:uk-carbon-comparison-card
+            entity: sensor.CARBON_regional_comparison
+
+      # ── Section 5: Trends ──
+      - type: grid
+        cards:
+          - type: heading
+            heading: Trends
+            heading_style: title
+            icon: mdi:chart-line
+
+          - type: history-graph
+            title: Carbon Intensity (24h)
+            hours_to_show: 24
+            entities:
+              - entity: sensor.CARBON_regional_intensity
+                name: Regional
+              - entity: sensor.CARBON_national_intensity
+                name: National
+
+          - type: history-graph
+            title: Low Carbon vs Fossil (24h)
+            hours_to_show: 24
+            entities:
+              - entity: sensor.CARBON_low_carbon_percentage
+                name: Low Carbon %
+              - entity: sensor.CARBON_fossil_percentage
+                name: Fossil %

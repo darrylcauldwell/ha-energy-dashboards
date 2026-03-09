@@ -1,0 +1,210 @@
+# Victron Horsebox Dashboard
+#
+# Lovelace dashboard template for the ha-victron-modbus custom integration.
+# Entity IDs use VICTRON_ placeholders which are replaced by
+# scripts/deploy_victron_dashboard.py at deploy time.
+#
+# The deploy script discovers entities by matching platform == "victron_modbus"
+# in the entity registry and mapping by translation_key.
+#
+# Sections:
+#   1. System Overview — gauges for battery, solar, shore power + smart status
+#   2. Battery — detailed battery metrics
+#   3. Solar Charger — MPPT solar charger metrics
+#   4. VE.Bus Inverter — AC input/output metrics
+#   5. Trends — historical graphs
+
+views:
+  - title: Victron
+    path: victron-energy
+    icon: mdi:lightning-bolt
+    cards:
+      # ── Section 1: System Overview ──────────────────────────────────
+      - type: vertical-stack
+        cards:
+          - type: markdown
+            content: "## System Overview"
+
+          - type: horizontal-stack
+            cards:
+              - type: gauge
+                entity: sensor.VICTRON_system_battery_soc
+                name: Battery SOC
+                unit: "%"
+                min: 0
+                max: 100
+                needle: true
+                segments:
+                  - from: 0
+                    color: red
+                  - from: 20
+                    color: amber
+                  - from: 50
+                    color: green
+
+              - type: gauge
+                entity: sensor.VICTRON_system_pv_power
+                name: PV Power
+                unit: W
+                min: 0
+                max: 3000
+                needle: true
+                segments:
+                  - from: 0
+                    color: grey
+                  - from: 100
+                    color: green
+                  - from: 1500
+                    color: amber
+                  - from: 2500
+                    color: red
+
+              - type: gauge
+                entity: sensor.VICTRON_system_grid_power_l1
+                name: Shore Power
+                unit: W
+                min: 0
+                max: 3000
+                needle: true
+                segments:
+                  - from: 0
+                    color: green
+                  - from: 1000
+                    color: amber
+                  - from: 2000
+                    color: red
+
+          - type: markdown
+            title: Status
+            content: >
+              {% set soc = states('sensor.VICTRON_system_battery_soc') %}
+              {% set pv = states('sensor.VICTRON_system_pv_power') %}
+              {% set grid = states('sensor.VICTRON_system_grid_power_l1') %}
+              {% set bat_state = states('sensor.VICTRON_system_battery_state') %}
+              {% set bat_power = states('sensor.VICTRON_system_battery_power') %}
+              {% set consumption = states('sensor.VICTRON_system_ac_consumption_l1') %}
+              {% if soc in ['unknown', 'unavailable'] %}
+              *Victron system offline or unavailable.*
+              {% else %}
+              **Battery:** {{ soc | float | int }}% — {{ bat_state }}
+              {% if bat_power not in ['unknown', 'unavailable'] %} ({{ bat_power | float | abs | int }}W){% endif %}
+
+
+              {% if pv not in ['unknown', 'unavailable'] and pv | float > 0 %}**Solar:** generating {{ pv | float | int }}W{% else %}**Solar:** not generating{% endif %}
+
+
+              {% if grid not in ['unknown', 'unavailable'] and grid | float > 0 %}**Shore power:** drawing {{ grid | float | int }}W{% else %}**Shore power:** not connected{% endif %}
+
+
+              {% if consumption not in ['unknown', 'unavailable'] %}**Load:** {{ consumption | float | int }}W{% endif %}
+              {% endif %}
+
+      # ── Section 2: Battery ──────────────────────────────────────────
+      - type: vertical-stack
+        cards:
+          - type: markdown
+            content: "## Battery"
+
+          - type: entities
+            entities:
+              - entity: sensor.VICTRON_system_battery_soc
+                name: State of Charge
+              - entity: sensor.VICTRON_system_battery_voltage
+                name: Voltage
+              - entity: sensor.VICTRON_system_battery_current
+                name: Current
+              - entity: sensor.VICTRON_system_battery_power
+                name: Power
+              - entity: sensor.VICTRON_system_battery_state
+                name: State
+
+      # ── Section 3: Solar Charger (MPPT) ─────────────────────────────
+      - type: vertical-stack
+        cards:
+          - type: markdown
+            content: "## Solar Charger"
+
+          - type: entities
+            entities:
+              - entity: sensor.VICTRON_solar_charger_state
+                name: Charger State
+              - entity: sensor.VICTRON_solar_pv_voltage
+                name: PV Voltage
+              - entity: sensor.VICTRON_solar_pv_current
+                name: PV Current
+              - entity: sensor.VICTRON_solar_pv_power
+                name: PV Power
+              - entity: sensor.VICTRON_solar_battery_voltage
+                name: Battery Voltage
+              - entity: sensor.VICTRON_solar_battery_current
+                name: Battery Current
+              - entity: sensor.VICTRON_solar_yield_today
+                name: Yield Today
+              - entity: sensor.VICTRON_solar_max_charge_power_today
+                name: Max Charge Power Today
+
+      # ── Section 4: VE.Bus Inverter ──────────────────────────────────
+      - type: vertical-stack
+        cards:
+          - type: markdown
+            content: "## VE.Bus Inverter"
+
+          - type: entities
+            title: AC Input (Shore Power)
+            entities:
+              - entity: sensor.VICTRON_vebus_ac_input_voltage
+                name: Voltage
+              - entity: sensor.VICTRON_vebus_ac_input_current
+                name: Current
+              - entity: sensor.VICTRON_vebus_ac_input_frequency
+                name: Frequency
+              - entity: sensor.VICTRON_vebus_ac_input_power
+                name: Power
+
+          - type: entities
+            title: AC Output (Loads)
+            entities:
+              - entity: sensor.VICTRON_vebus_ac_output_voltage
+                name: Voltage
+              - entity: sensor.VICTRON_vebus_ac_output_current
+                name: Current
+              - entity: sensor.VICTRON_vebus_ac_output_frequency
+                name: Frequency
+              - entity: sensor.VICTRON_vebus_ac_output_power
+                name: Power
+
+          - type: entities
+            title: VE.Bus Status
+            entities:
+              - entity: sensor.VICTRON_vebus_state
+                name: State
+              - entity: sensor.VICTRON_vebus_battery_voltage
+                name: Battery Voltage
+              - entity: sensor.VICTRON_vebus_battery_current
+                name: Battery Current
+              - entity: sensor.VICTRON_vebus_battery_soc
+                name: Battery SOC
+
+      # ── Section 5: Trends ───────────────────────────────────────────
+      - type: vertical-stack
+        cards:
+          - type: markdown
+            content: "## Trends"
+
+          - type: history-graph
+            title: Battery SOC (24h)
+            hours_to_show: 24
+            entities:
+              - entity: sensor.VICTRON_system_battery_soc
+                name: Battery SOC
+
+          - type: history-graph
+            title: Power (24h)
+            hours_to_show: 24
+            entities:
+              - entity: sensor.VICTRON_system_pv_power
+                name: PV Power
+              - entity: sensor.VICTRON_system_grid_power_l1
+                name: Shore Power
+              - entity: sensor.VICTRON_system_ac_consumption_l1
+                name: Consumption

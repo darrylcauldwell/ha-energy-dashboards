@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+*.p8
+*.p12
+*.pem
+*.key
+credentials.json
+serviceAccountKey.json
+api_key.json
+.claude/
+.DS_Store
