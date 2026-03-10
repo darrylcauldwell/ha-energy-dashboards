@@ -157,19 +157,10 @@ views:
               {% set solar_today = states('sensor.solcast_pv_forecast_forecast_today') | float(0) %}
               {% set solar_tomorrow = states('sensor.solcast_pv_forecast_forecast_tomorrow') | float(0) %}
               {% set lowest_carbon = states('sensor.CARBON_lowest_forecast_intensity') | float(0) %}
+              {% set peak_tomorrow = states('sensor.solcast_pv_forecast_peak_forecast_tomorrow') | float(0) %}
               | Solar Today | Solar Tomorrow | Lowest Carbon |
               |:-----------:|:--------------:|:-------------:|
-              | {{ solar_today | round(1) }}kWh | {{ solar_tomorrow | round(1) }}kWh | {{ lowest_carbon | round(0) | int }} gCO2/kWh |
-
-          - type: markdown
-            content: |
-              ### Tomorrow's Recommendation
-              {% set solar_tomorrow = states('sensor.solcast_pv_forecast_forecast_tomorrow') | float(0) %}
-              {% set solar_today = states('sensor.solcast_pv_forecast_forecast_today') | float(0) %}
-              {% set lowest_carbon = states('sensor.CARBON_lowest_forecast_intensity') | float(0) %}
-              {% set battery_soc = states('sensor.SOLAX_battery_state_of_charge') | float(0) %}
-              {% set peak_tomorrow = states('sensor.solcast_pv_forecast_peak_forecast_tomorrow') | float(0) %}
-              **Tomorrow: {{ solar_tomorrow | round(1) }}kWh** (peak {{ (peak_tomorrow / 1000) | round(1) }}kW)
+              | {{ solar_today | round(1) }}kWh | {{ solar_tomorrow | round(1) }}kWh (peak {{ (peak_tomorrow / 1000) | round(1) }}kW) | {{ lowest_carbon | round(0) | int }} gCO2/kWh |
 
               {% if solar_tomorrow > 15 %}
               **Sunny day ahead** — skip overnight charging, solar should cover daytime needs and recharge the battery.
