@@ -93,25 +93,27 @@ views:
               **Normal operation** — {{ rate | round(1) }}p/kWh, carbon {{ carbon_index }}
               {% endif %}
 
-          - type: entities
-            title: Current Readings
-            entities:
-              - entity: sensor.octopus_energy_OCTOPUS_IMPORT_current_rate
-                name: Import rate
-              - entity: sensor.octopus_energy_OCTOPUS_IMPORT_next_rate
-                name: Next rate
-              - entity: sensor.octopus_energy_OCTOPUS_EXPORT_export_current_rate
-                name: Export rate
-              - entity: sensor.CARBON_national_index
-                name: Carbon index
-              - entity: sensor.SOLAX_battery_power
-                name: Battery power
-              - entity: sensor.SOLAX_grid_power
-                name: Grid power
-              - entity: sensor.solcast_pv_forecast_power_now
-                name: Solar forecast (now)
-              - entity: sensor.solcast_pv_forecast_forecast_remaining_today
-                name: Solar remaining today
+          - type: markdown
+            content: |
+              ### Current Readings
+              {% set import_rate = states('sensor.octopus_energy_OCTOPUS_IMPORT_current_rate') | float(0) %}
+              {% set next_rate = states('sensor.octopus_energy_OCTOPUS_IMPORT_next_rate') | float(0) %}
+              {% set export_rate = states('sensor.octopus_energy_OCTOPUS_EXPORT_export_current_rate') | float(0) %}
+              {% set carbon_index = states('sensor.CARBON_national_index') %}
+              {% set battery_power = states('sensor.SOLAX_battery_power') | float(0) %}
+              {% set grid_power = states('sensor.SOLAX_grid_power') | float(0) %}
+              {% set solar_now = states('sensor.solcast_pv_forecast_power_now') | float(0) %}
+              {% set solar_remaining = states('sensor.solcast_pv_forecast_forecast_remaining_today') | float(0) %}
+              | | |
+              |---|---:|
+              | **Import rate** | {{ import_rate | round(2) }} p/kWh |
+              | **Next rate** | {{ next_rate | round(2) }} p/kWh |
+              | **Export rate** | {{ export_rate | round(2) }} p/kWh |
+              | **Carbon index** | {{ carbon_index }} |
+              | **Battery power** | {{ battery_power | round(0) | int }} W |
+              | **Grid power** | {{ grid_power | round(0) | int }} W |
+              | **Solar forecast (now)** | {{ solar_now | round(0) | int }} W |
+              | **Solar remaining today** | {{ solar_remaining | round(1) }} kWh |
 
       # ── Section 2: Yesterday's Review ──────────────────────────────────
       - type: vertical-stack
@@ -267,8 +269,9 @@ views:
       # ── Section 5: Weekly Trends ──────────────────────────────────────
       - type: vertical-stack
         cards:
+          - type: markdown
+            content: "### PV Generation & Consumption (7 days)"
           - type: statistics-graph
-            title: PV Generation & Consumption (7 days)
             entities:
               - entity: sensor.SOLAX_total_pv_energy
                 name: PV Total
@@ -281,8 +284,9 @@ views:
               - change
             period: day
 
+          - type: markdown
+            content: "### Battery SOC (7 days)"
           - type: history-graph
-            title: Battery SOC (7 days)
             entities:
               - entity: sensor.SOLAX_battery_state_of_charge
                 name: Battery SOC
