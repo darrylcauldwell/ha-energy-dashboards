@@ -265,29 +265,3 @@ views:
               |--------|-------|
               | **Clean energy** | {{ low_carbon | round(1) }}% |
               | **Fossil fuel** | {{ fossil | round(1) }}% |
-
-      # ── Section 5: Weekly Trends ──────────────────────────────────────
-      - type: vertical-stack
-        cards:
-          - type: markdown
-            content: "### PV Generation & Consumption (7 days)"
-          - type: statistics-graph
-            entities:
-              - entity: sensor.SOLAX_total_pv_energy
-                name: PV Total
-              - entity: sensor.octopus_energy_OCTOPUS_IMPORT_previous_consumption
-                name: Import
-              - entity: sensor.octopus_energy_OCTOPUS_EXPORT_export_previous_consumption
-                name: Export
-            days_to_show: 7
-            stat_types:
-              - change
-            period: day
-
-          - type: markdown
-            content: "### Battery SOC (7 days)"
-          - type: history-graph
-            entities:
-              - entity: sensor.SOLAX_battery_state_of_charge
-                name: Battery SOC
-            hours_to_show: 168
