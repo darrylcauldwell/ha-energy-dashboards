@@ -56,14 +56,20 @@ ENTITY_MAP = {
     "GAS_METER_gas_previous_consumption": r".*_gas_previous_consumption$",
     "GAS_METER_gas_previous_cost": r".*_gas_previous_cost$",
     "GAS_METER_gas_standing_charge": r".*_gas_standing_charge$",
-    # Entry-level (custom integration)
-    "ENTRY_carbon_correlation": r".*_carbon_correlation$",
     # Account-level
     "ACCOUNT_tariff_comparison": r".*_tariff_comparison$",
     "ACCOUNT_solar_estimate": r".*_solar_estimate$",
 }
 
 PREFIX = "sensor.octopus_energy_"
+
+# Carbon Intensity sensor keys — matched by translation_key in entity registry
+CARBON_KEYS = [
+    "national_intensity",
+    "national_index",
+    "low_carbon_percentage",
+    "fossil_percentage",
+]
 
 
 def load_token() -> str:
@@ -125,6 +131,36 @@ def discover_entities(entities: list[dict]) -> dict[str, str]:
     return replacements
 
 
+def discover_carbon_entities(entities: list[dict]) -> dict[str, str]:
+    """Discover UK Carbon Intensity entities by translation_key."""
+    carbon_entities = [
+        e for e in entities if e.get("platform") == "uk_carbon_intensity"
+    ]
+
+    if not carbon_entities:
+        print("\nWARNING: No uk_carbon_intensity entities found")
+        return {}
+
+    key_to_entity = {}
+    for e in carbon_entities:
+        tkey = e.get("translation_key")
+        if tkey:
+            key_to_entity[tkey] = e["entity_id"]
+
+    print(f"\nCarbon Intensity: found {len(carbon_entities)} entities")
+    replacements: dict[str, str] = {}
+    for key in CARBON_KEYS:
+        placeholder = f"sensor.CARBON_{key}"
+        real_id = key_to_entity.get(key)
+        if real_id:
+            replacements[placeholder] = real_id
+            print(f"  CARBON_{key} -> {real_id}")
+        else:
+            print(f"  CARBON_{key} -> NOT FOUND")
+
+    return replacements
+
+
 def substitute_template(template: str, replacements: dict[str, str]) -> dict:
     """Replace placeholder entity IDs in the YAML template with real ones."""
     result = template
@@ -133,7 +169,7 @@ def substitute_template(template: str, replacements: dict[str, str]) -> dict:
 
     # Warn about any remaining placeholders
     remaining = re.findall(
-        r"sensor\.octopus_energy_(?:ELECTRICITY_METER|EXPORT_METER|GAS_METER|ENTRY|ACCOUNT)_\w+",
+        r"sensor\.(?:octopus_energy_(?:ELECTRICITY_METER|EXPORT_METER|GAS_METER|ENTRY|ACCOUNT)_\w+|CARBON_\w+)",
         result,
     )
     if remaining:
@@ -181,10 +217,12 @@ async def deploy(token: str) -> None:
             print(f"ERROR: Failed to list entities: {entity_resp}")
             sys.exit(1)
 
-        replacements = discover_entities(entity_resp["result"])
+        all_entities = entity_resp["result"]
+        replacements = discover_entities(all_entities)
         if not replacements:
             print("ERROR: Could not identify any Octopus Energy entities")
             sys.exit(1)
+        replacements.update(discover_carbon_entities(all_entities))
 
         # Generate final config
         template = load_template()
