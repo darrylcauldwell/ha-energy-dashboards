@@ -39,20 +39,18 @@ views:
             icon: mdi:map-marker-multiple
 
           - type: markdown
-            content: >-
+            content: |
+              ### Comparison
               {% set ri = states('sensor.CARBON_regional_intensity') | float(0) %}
               {% set rx = states('sensor.CARBON_regional_index') %}
               {% set ni = states('sensor.CARBON_national_intensity') | float(0) %}
               {% set nx = states('sensor.CARBON_national_index') %}
               {% set diff = ri - ni %}
-
-
               | | Intensity | Index |
               |--|-----------|-------|
               | **Your Region** | {{ ri | round(0) | int }} gCO2/kWh | {{ rx | replace('_', ' ') | title }} |
               | **National** | {{ ni | round(0) | int }} gCO2/kWh | {{ nx | replace('_', ' ') | title }} |
               | **Difference** | {% if diff > 0 %}+{% endif %}{{ diff | round(0) | int }} | {% if diff > 20 %}Above avg{% elif diff < -20 %}Below avg{% else %}Near avg{% endif %} |
-            title: Comparison
 
           - type: horizontal-stack
             cards:
@@ -95,7 +93,8 @@ views:
                     color: "#E5584F"
 
           - type: markdown
-            content: >-
+            content: |
+              ### Optimal Low-Carbon Window
               {% set lowest = states('sensor.CARBON_lowest_forecast_intensity') | float(0) %}
               {% set start = state_attr('sensor.CARBON_lowest_forecast_intensity', 'optimal_window_start') %}
               {% set end = state_attr('sensor.CARBON_lowest_forecast_intensity', 'optimal_window_end') %}
@@ -106,7 +105,6 @@ views:
               {% else %}
               **Best window:** unavailable
               {% endif %}
-            title: Optimal Low-Carbon Window
 
       # ── Section 3: Energy Sources ──
       - type: grid

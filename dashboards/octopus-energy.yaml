@@ -96,7 +96,7 @@ views:
               {%- set elec_standing = states('sensor.octopus_energy_ELECTRICITY_METER_standing_charge') | float(0) / 100 -%}
               {%- set gas_standing = states('sensor.octopus_energy_GAS_METER_gas_standing_charge') | float(0) / 100 -%}
               {%- set net = ic - export_revenue + gas_cost + elec_standing + gas_standing -%}
-              {%- set carbon = state_attr('sensor.octopus_energy_ENTRY_carbon_correlation', 'carbon_summary') -%}
+              {%- set co2_g = states('input_number.yesterday_co2_grams') | float(0) -%}
               {%- set charges = state_attr('sensor.octopus_energy_ELECTRICITY_METER_previous_cost', 'charges') -%}
               {%- set data_date = as_timestamp(charges[0].start) | timestamp_custom('%A %-d %B') if charges and charges | length > 0 else 'Unknown' %}
               ### {{ data_date }} — £{{ '%.2f' | format(net) }} net
@@ -118,8 +118,8 @@ views:
               | Export | *data pending (24-48h lag)* |
               {%- endif %}
               | Standing charges | £{{ '%.2f' | format(elec_standing + gas_standing) }} |
-              {%- if carbon %}
-              | My CO2 | {{ '%.1f' | format(carbon.total_grams_co2 / 1000) }} kg |
+              {%- if co2_g > 0 %}
+              | CO2 footprint | {{ '%.1f' | format(co2_g / 1000) }} kg ({{ co2_g | round(0) | int }}g) |
               {%- endif %}
               {%- else %}
               **Standing charges only: £{{ '%.2f' | format(
@@ -170,18 +170,20 @@ views:
           - type: markdown
             content: |
               ### Yesterday's Carbon Footprint
-              {%- set carbon = state_attr('sensor.octopus_energy_ENTRY_carbon_correlation', 'carbon_summary') -%}
-              {%- if carbon -%}
-              {%- set co2_kg = carbon.total_grams_co2 / 1000 %}
+              {%- set co2_g = states('input_number.yesterday_co2_grams') | float(0) -%}
+              {%- set consumption = states('sensor.octopus_energy_ELECTRICITY_METER_previous_consumption') | float(0) -%}
+              {%- if co2_g > 0 and consumption > 0 -%}
+              {%- set avg_intensity = co2_g / consumption %}
 
               | | |
               |---|---|
-              | **Total CO2** | {{ '%.1f' | format(co2_kg) }} kg |
-              | **Avg intensity** | {{ carbon.weighted_avg_intensity }} gCO2/kWh |
-              | **High-carbon usage** | {{ '%.1f' | format(carbon.high_carbon_kwh) }} kWh ({{ carbon.high_carbon_pct | int }}%) |
-              | **Low-carbon usage** | {{ '%.1f' | format(carbon.low_carbon_kwh) }} kWh ({{ carbon.low_carbon_pct | int }}%) |
+              | **CO2 footprint** | {{ '%.1f' | format(co2_g / 1000) }} kg ({{ co2_g | round(0) | int }}g) |
+              | **Avg carbon intensity** | {{ avg_intensity | round(0) | int }} gCO2/kWh |
+              | **Consumption** | {{ consumption | round(1) }} kWh |
+
+              *Calculated from half-hourly consumption × half-hourly grid carbon intensity.*
               {%- else %}
-              *Carbon data not yet available.*
+              *Carbon data not yet available. Run calculate_co2.py to update.*
               {%- endif %}
 
           - type: markdown

@@ -54,7 +54,6 @@ OCTOPUS_MAP = {
     "OCTOPUS_GAS_gas_previous_cost": r".*(?:gas).*_previous_(?:accumulative_)?cost$",
     "OCTOPUS_GAS_gas_standing_charge": r".*(?:gas).*_(?:current_)?standing_charge$",
     # Entry-level (custom integration only)
-    "OCTOPUS_ENTRY_carbon_correlation": r".*_carbon_correlation$",
     "OCTOPUS_ENTRY_tariff_comparison": r".*_tariff_comparison$",
     "OCTOPUS_ENTRY_solar_estimate": r".*_solar_estimate$",
 }
