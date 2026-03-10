@@ -134,19 +134,16 @@ views:
               {% set elec_standing = states('sensor.octopus_energy_OCTOPUS_IMPORT_standing_charge') | float(0) / 100 %}
               {% set gas_standing = states('sensor.octopus_energy_OCTOPUS_GAS_gas_standing_charge') | float(0) / 100 %}
               {% set net = ic - export_revenue + gas_cost + elec_standing + gas_standing %}
-              {% set intensity = states('sensor.CARBON_national_intensity') | float(0) %}
-              {% set est_co2 = consumption * intensity %}
+              {% set co2_g = states('input_number.yesterday_co2_grams') | float(0) %}
               | | |
               |---|---:|
               | **Consumption** | {{ consumption | round(1) }} kWh |
-              | **Est. CO2 footprint** | {{ est_co2 | round(0) | int }}g ({{ (est_co2 / 1000) | round(2) }}kg) |
+              | **CO2 footprint** | {{ co2_g | round(0) | int }}g ({{ (co2_g / 1000) | round(2) }}kg) |
               | **Net daily cost** | **£{{ '%.2f' | format(net) }}** |
               | Electricity import | £{{ '%.2f' | format(ic) }} |
               | Export revenue | -£{{ '%.2f' | format(export_revenue) }} |
               | Gas | £{{ '%.2f' | format(gas_cost) }} |
               | Standing charges | £{{ '%.2f' | format(elec_standing + gas_standing) }} |
-
-              *CO2 estimate uses current grid intensity ({{ intensity | round(0) | int }}gCO2/kWh) as proxy for yesterday's average.*
               {% else %}
               *Awaiting yesterday's consumption data.*
               {% endif %}
