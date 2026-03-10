@@ -69,7 +69,7 @@ views:
 
           - type: markdown
             content: |
-              ### Current Readings
+              ### Current Summary
               {% set import_rate = states('sensor.octopus_energy_OCTOPUS_IMPORT_current_rate') | float(0) %}
               {% set next_rate = states('sensor.octopus_energy_OCTOPUS_IMPORT_next_rate') | float(0) %}
               {% set export_rate = states('sensor.octopus_energy_OCTOPUS_EXPORT_export_current_rate') | float(0) %}
