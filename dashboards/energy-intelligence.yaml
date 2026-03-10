@@ -20,9 +20,6 @@ views:
       # ── Section 1: Right Now ──────────────────────────────────────────
       - type: vertical-stack
         cards:
-          - type: markdown
-            content: "## Right Now"
-
           - type: horizontal-stack
             cards:
               - type: gauge
@@ -71,8 +68,8 @@ views:
                     color: green
 
           - type: markdown
-            title: Smart Status
             content: |
+              ### Smart Status
               {% set rate = states('sensor.octopus_energy_OCTOPUS_IMPORT_current_rate') | float(0) %}
               {% set carbon_index = states('sensor.CARBON_national_index') %}
               {% set battery_soc = states('sensor.SOLAX_battery_state_of_charge') | float(0) %}
@@ -120,10 +117,8 @@ views:
       - type: vertical-stack
         cards:
           - type: markdown
-            content: "## Yesterday's Review"
-
-          - type: markdown
             content: |
+              ### Yesterday's Summary
               {% set consumption = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_consumption') | float(0) %}
               {% set cost = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_cost') | float(0) %}
               {% set intensity = states('sensor.CARBON_national_intensity') | float(0) %}
@@ -133,8 +128,8 @@ views:
               | {{ consumption | round(1) }}kWh | £{{ '%.2f' | format(cost) }} | {{ est_co2 | round(0) | int }}g ({{ (est_co2 / 1000) | round(2) }}kg) |
 
           - type: markdown
-            title: Carbon Analysis
             content: |
+              ### Yesterday's Carbon Analysis
               {% set consumption = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_consumption') | float(0) %}
               {% set intensity = states('sensor.CARBON_national_intensity') | float(0) %}
               {% set index = states('sensor.CARBON_national_index') %}
@@ -156,8 +151,8 @@ views:
               {% endif %}
 
           - type: markdown
-            title: Net Cost
             content: |
+              ### Yesterday's Net Cost
               {% set import_cost = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_cost') %}
               {% set has_data = import_cost not in ['unknown', 'unavailable'] %}
               {% if has_data %}
@@ -183,10 +178,8 @@ views:
       - type: vertical-stack
         cards:
           - type: markdown
-            content: "## Tomorrow's Outlook"
-
-          - type: markdown
             content: |
+              ### Tomorrow's Outlook
               {% set solar_today = states('sensor.solcast_pv_forecast_forecast_today') | float(0) %}
               {% set solar_tomorrow = states('sensor.solcast_pv_forecast_forecast_tomorrow') | float(0) %}
               {% set lowest_carbon = states('sensor.CARBON_lowest_forecast_intensity') | float(0) %}
@@ -195,8 +188,8 @@ views:
               | {{ solar_today | round(1) }}kWh | {{ solar_tomorrow | round(1) }}kWh | {{ lowest_carbon | round(0) | int }} gCO2/kWh |
 
           - type: markdown
-            title: Recommendation
             content: |
+              ### Tomorrow's Recommendation
               {% set solar_tomorrow = states('sensor.solcast_pv_forecast_forecast_tomorrow') | float(0) %}
               {% set solar_today = states('sensor.solcast_pv_forecast_forecast_today') | float(0) %}
               {% set lowest_carbon = states('sensor.CARBON_lowest_forecast_intensity') | float(0) %}
@@ -221,8 +214,8 @@ views:
               {% endif %}
 
           - type: markdown
-            title: Carbon Forecast
             content: |
+              ### Carbon Forecast
               {% set current = states('sensor.CARBON_national_intensity') | float(0) %}
               {% set index = states('sensor.CARBON_national_index') %}
               {% set low_carbon = states('sensor.CARBON_low_carbon_percentage') | float(0) %}
@@ -241,11 +234,8 @@ views:
       - type: vertical-stack
         cards:
           - type: markdown
-            content: "## Energy Ratios"
-
-          - type: markdown
-            title: Self-Consumption & Export
             content: |
+              ### Self-Consumption & Export
               {% set import_kwh = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_consumption') | float(0) %}
               {% set export_kwh = states('sensor.octopus_energy_OCTOPUS_EXPORT_export_previous_consumption') | float(0) %}
               {% set pv_today = states('sensor.SOLAX_today_pv_energy') | float(0) %}
@@ -265,8 +255,8 @@ views:
               {% endif %}
 
           - type: markdown
-            title: Grid Carbon Split
             content: |
+              ### Grid Carbon Split
               {% set low_carbon = states('sensor.CARBON_low_carbon_percentage') | float(0) %}
               {% set fossil = states('sensor.CARBON_fossil_percentage') | float(0) %}
               | Source | Share |
@@ -277,9 +267,6 @@ views:
       # ── Section 5: Weekly Trends ──────────────────────────────────────
       - type: vertical-stack
         cards:
-          - type: markdown
-            content: "## Weekly Trends"
-
           - type: statistics-graph
             title: PV Generation & Consumption (7 days)
             entities:
