@@ -6,6 +6,9 @@ entity registry by matching platform and translation_key, substitutes
 them into the dashboard template, and pushes via lovelace/dashboards/create
 + lovelace/config/save.
 
+Also copies custom Lovelace card JS files to HA's www/ directory via the
+REST API and registers them as Lovelace resources.
+
 Usage:
     python3 scripts/deploy_carbon_intensity.py
 
@@ -33,9 +36,20 @@ except ImportError:
     sys.exit(1)
 
 HA_URL = "ws://192.168.1.227:8123/api/websocket"
+HA_SSH_HOST = "192.168.1.227"
+HA_SSH_PORT = 22222
+HA_SSH_USER = "root"
+HA_SSH_PASSWORD = "deploy2026"
 DASHBOARD_URL_PATH = "uk-carbon-intensity"
 DASHBOARD_TITLE = "UK Carbon Intensity"
 DASHBOARD_ICON = "mdi:molecule-co2"
+
+# Custom Lovelace card JS files to deploy
+CARDS_DIR = Path(__file__).resolve().parent.parent / "cards"
+CUSTOM_CARDS = [
+    "uk-carbon-intensity-card.js",
+    "uk-carbon-comparison-card.js",
+]
 
 # Sensor keys from uk_carbon_intensity sensor.py.
 # These match the translation_key / description key in the integration.
@@ -183,6 +197,52 @@ async def deploy(token: str) -> None:
         if not replacements:
             print("ERROR: Could not identify any UK Carbon Intensity entities")
             sys.exit(1)
+
+        # Deploy custom Lovelace cards via SCP
+        print("\nDeploying custom Lovelace cards via SCP...")
+        for card_file in CUSTOM_CARDS:
+            card_path = CARDS_DIR / card_file
+            if not card_path.exists():
+                print(f"  WARNING: {card_file} not found at {card_path}")
+                continue
+
+            import subprocess
+            result = subprocess.run(
+                [
+                    "sshpass", "-p", HA_SSH_PASSWORD,
+                    "scp", "-o", "StrictHostKeyChecking=no",
+                    "-P", str(HA_SSH_PORT),
+                    str(card_path),
+                    f"{HA_SSH_USER}@{HA_SSH_HOST}:/config/www/",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                print(f"  Copied {card_file} to /config/www/")
+            else:
+                print(f"  ERROR copying {card_file}: {result.stderr.strip()}")
+
+        # Register custom cards as Lovelace resources
+        print("\nRegistering Lovelace resources...")
+        res_resp = await send(ws, {"type": "lovelace/resources"})
+        existing_resources = res_resp.get("result", []) if res_resp.get("success") else []
+        existing_urls = {r.get("url", "") for r in existing_resources}
+
+        for card_file in CUSTOM_CARDS:
+            resource_url = f"/local/{card_file}"
+            if resource_url in existing_urls:
+                print(f"  {resource_url} already registered")
+            else:
+                reg_resp = await send(ws, {
+                    "type": "lovelace/resources/create",
+                    "url": resource_url,
+                    "res_type": "module",
+                })
+                if reg_resp.get("success"):
+                    print(f"  Registered {resource_url}")
+                else:
+                    print(f"  WARNING: Failed to register {resource_url}: {reg_resp}")
 
         # Generate final config
         template = load_template()
