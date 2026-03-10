@@ -124,57 +124,29 @@ views:
           - type: markdown
             content: |
               ### Yesterday's Summary
-              {% set consumption = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_consumption') | float(0) %}
-              {% set cost = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_cost') | float(0) %}
-              {% set intensity = states('sensor.CARBON_national_intensity') | float(0) %}
-              {% set est_co2 = consumption * intensity %}
-              | Consumption | Cost | Est. CO2 |
-              |:-----------:|:----:|:--------:|
-              | {{ consumption | round(1) }}kWh | £{{ '%.2f' | format(cost) }} | {{ est_co2 | round(0) | int }}g ({{ (est_co2 / 1000) | round(2) }}kg) |
-
-          - type: markdown
-            content: |
-              ### Yesterday's Carbon Analysis
-              {% set consumption = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_consumption') | float(0) %}
-              {% set intensity = states('sensor.CARBON_national_intensity') | float(0) %}
-              {% set index = states('sensor.CARBON_national_index') %}
-              {% set low_carbon = states('sensor.CARBON_low_carbon_percentage') | float(0) %}
-              {% set fossil = states('sensor.CARBON_fossil_percentage') | float(0) %}
-              {% if consumption > 0 and intensity > 0 %}
-              {% set est_co2 = consumption * intensity %}
-              | Metric | Value |
-              |--------|-------|
-              | **Yesterday's import** | {{ consumption | round(1) }}kWh |
-              | **Est. CO2 footprint** | {{ est_co2 | round(0) | int }}g ({{ (est_co2 / 1000) | round(2) }}kg) |
-              | **Grid intensity (now)** | {{ intensity | round(0) | int }}gCO2/kWh ({{ index }}) |
-              | **Low-carbon share** | {{ low_carbon | round(1) }}% |
-              | **Fossil fuel share** | {{ fossil | round(1) }}% |
-
-              *CO2 estimate uses current grid intensity as proxy for yesterday's average.*
-              {% else %}
-              *Carbon analysis will appear once UK Carbon Intensity and consumption data are available.*
-              {% endif %}
-
-          - type: markdown
-            content: |
-              ### Yesterday's Net Cost
               {% set import_cost = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_cost') %}
               {% set has_data = import_cost not in ['unknown', 'unavailable'] %}
               {% if has_data %}
+              {% set consumption = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_consumption') | float(0) %}
               {% set ic = import_cost | float(0) %}
               {% set export_revenue = states('sensor.octopus_energy_OCTOPUS_EXPORT_export_previous_cost') | float(0) %}
               {% set gas_cost = states('sensor.octopus_energy_OCTOPUS_GAS_gas_previous_cost') | float(0) %}
               {% set elec_standing = states('sensor.octopus_energy_OCTOPUS_IMPORT_standing_charge') | float(0) / 100 %}
               {% set gas_standing = states('sensor.octopus_energy_OCTOPUS_GAS_gas_standing_charge') | float(0) / 100 %}
               {% set net = ic - export_revenue + gas_cost + elec_standing + gas_standing %}
-              **Net daily cost: £{{ '%.2f' | format(net) }}**
-
+              {% set intensity = states('sensor.CARBON_national_intensity') | float(0) %}
+              {% set est_co2 = consumption * intensity %}
               | | |
-              |---|---|
+              |---|---:|
+              | **Consumption** | {{ consumption | round(1) }} kWh |
+              | **Est. CO2 footprint** | {{ est_co2 | round(0) | int }}g ({{ (est_co2 / 1000) | round(2) }}kg) |
+              | **Net daily cost** | **£{{ '%.2f' | format(net) }}** |
               | Electricity import | £{{ '%.2f' | format(ic) }} |
               | Export revenue | -£{{ '%.2f' | format(export_revenue) }} |
               | Gas | £{{ '%.2f' | format(gas_cost) }} |
               | Standing charges | £{{ '%.2f' | format(elec_standing + gas_standing) }} |
+
+              *CO2 estimate uses current grid intensity ({{ intensity | round(0) | int }}gCO2/kWh) as proxy for yesterday's average.*
               {% else %}
               *Awaiting yesterday's consumption data.*
               {% endif %}
