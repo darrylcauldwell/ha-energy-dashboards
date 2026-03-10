@@ -122,17 +122,14 @@ views:
           - type: markdown
             content: "## Yesterday's Review"
 
-          - type: horizontal-stack
-            cards:
-              - type: entity
-                entity: sensor.octopus_energy_OCTOPUS_IMPORT_previous_consumption
-                name: Consumption
-              - type: entity
-                entity: sensor.octopus_energy_OCTOPUS_IMPORT_previous_cost
-                name: Cost
-              - type: entity
-                entity: sensor.CARBON_national_intensity
-                name: Grid Carbon
+          - type: markdown
+            content: |
+              {% set consumption = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_consumption') | float(0) %}
+              {% set cost = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_cost') | float(0) %}
+              {% set carbon = states('sensor.CARBON_national_intensity') | float(0) %}
+              | Consumption | Cost | Grid Carbon |
+              |:-----------:|:----:|:-----------:|
+              | {{ consumption | round(1) }}kWh | £{{ '%.2f' | format(cost) }} | {{ carbon | round(0) | int }} gCO2/kWh |
 
           - type: markdown
             title: Carbon Analysis
@@ -187,17 +184,14 @@ views:
           - type: markdown
             content: "## Tomorrow's Outlook"
 
-          - type: horizontal-stack
-            cards:
-              - type: entity
-                entity: sensor.solcast_pv_forecast_forecast_today
-                name: Solar Today
-              - type: entity
-                entity: sensor.solcast_pv_forecast_forecast_tomorrow
-                name: Solar Tomorrow
-              - type: entity
-                entity: sensor.CARBON_lowest_forecast_intensity
-                name: Lowest Carbon
+          - type: markdown
+            content: |
+              {% set solar_today = states('sensor.solcast_pv_forecast_forecast_today') | float(0) %}
+              {% set solar_tomorrow = states('sensor.solcast_pv_forecast_forecast_tomorrow') | float(0) %}
+              {% set lowest_carbon = states('sensor.CARBON_lowest_forecast_intensity') | float(0) %}
+              | Solar Today | Solar Tomorrow | Lowest Carbon |
+              |:-----------:|:--------------:|:-------------:|
+              | {{ solar_today | round(1) }}kWh | {{ solar_tomorrow | round(1) }}kWh | {{ lowest_carbon | round(0) | int }} gCO2/kWh |
 
           - type: markdown
             title: Recommendation
