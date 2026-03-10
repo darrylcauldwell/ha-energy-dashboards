@@ -7,7 +7,7 @@
 #   OCTOPUS_IMPORT_*  — Electricity import meter sensors
 #   OCTOPUS_EXPORT_*  — Electricity export meter sensors
 #   OCTOPUS_GAS_*     — Gas meter sensors
-#   OCTOPUS_ENTRY_*   — Entry-level sensors (tariff_comparison, carbon_correlation)
+#   OCTOPUS_ENTRY_*   — Entry-level sensors (tariff_comparison)
 #   Solcast entities use fixed names (no placeholders needed)
 #   SOLAX_*           — SolaX inverter sensors
 #   CARBON_*          — UK Carbon Intensity sensors (discovered by translation_key)
@@ -131,43 +131,30 @@ views:
                 entity: sensor.octopus_energy_OCTOPUS_IMPORT_previous_cost
                 name: Cost
               - type: entity
-                entity: sensor.octopus_energy_OCTOPUS_ENTRY_carbon_correlation
-                name: Carbon Avg
+                entity: sensor.CARBON_national_intensity
+                name: Grid Carbon
 
           - type: markdown
             title: Carbon Analysis
             content: |
-              {% set carbon = state_attr('sensor.octopus_energy_OCTOPUS_ENTRY_carbon_correlation', 'carbon_summary') %}
-              {% if carbon %}
+              {% set consumption = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_consumption') | float(0) %}
+              {% set intensity = states('sensor.CARBON_national_intensity') | float(0) %}
+              {% set index = states('sensor.CARBON_national_index') %}
+              {% set low_carbon = states('sensor.CARBON_low_carbon_percentage') | float(0) %}
+              {% set fossil = states('sensor.CARBON_fossil_percentage') | float(0) %}
+              {% if consumption > 0 and intensity > 0 %}
+              {% set est_co2 = consumption * intensity %}
               | Metric | Value |
               |--------|-------|
-              | **Total CO2** | {{ carbon.total_grams_co2 | round(0) | int }}g ({{ (carbon.total_grams_co2 / 1000) | round(2) }}kg) |
-              | **Avg intensity** | {{ carbon.weighted_avg_intensity }}gCO2/kWh |
-              | **High-carbon usage** | {{ carbon.high_carbon_kwh }}kWh ({{ carbon.high_carbon_pct }}%) |
-              | **Low-carbon usage** | {{ carbon.low_carbon_kwh }}kWh ({{ carbon.low_carbon_pct }}%) |
-              {% else %}
-              *Carbon analysis will appear once the integration loads with consumption and carbon data.*
-              {% endif %}
+              | **Yesterday's import** | {{ consumption | round(1) }}kWh |
+              | **Est. CO2 footprint** | {{ est_co2 | round(0) | int }}g ({{ (est_co2 / 1000) | round(2) }}kg) |
+              | **Grid intensity (now)** | {{ intensity | round(0) | int }}gCO2/kWh ({{ index }}) |
+              | **Low-carbon share** | {{ low_carbon | round(1) }}% |
+              | **Fossil fuel share** | {{ fossil | round(1) }}% |
 
-          - type: markdown
-            title: Optimization Insights
-            content: |
-              {% set opt = state_attr('sensor.octopus_energy_OCTOPUS_ENTRY_carbon_correlation', 'optimization') %}
-              {% if opt and opt.cheapest_2h_window is defined %}
-              {% set cheap = opt.cheapest_2h_window %}
-              {% set green = opt.greenest_2h_window %}
-              **Cheapest 2h window yesterday:** {{ cheap.start[11:16] }}–{{ cheap.end[11:16] }} (avg {{ cheap.avg_rate }}p/kWh)
-
-              **Greenest 2h window yesterday:** {{ green.start[11:16] }}–{{ green.end[11:16] }} (avg {{ green.avg_intensity }}gCO2/kWh)
-
-              {% if cheap.start != green.start %}
-              *The cheapest and greenest windows differed — consider prioritising carbon or cost
-              depending on your goals.*
+              *CO2 estimate uses current grid intensity as proxy for yesterday's average.*
               {% else %}
-              *The cheapest window was also the greenest — optimal alignment!*
-              {% endif %}
-              {% else %}
-              *Optimization data will appear once the carbon correlation sensor has data.*
+              *Carbon analysis will appear once UK Carbon Intensity and consumption data are available.*
               {% endif %}
 
           - type: markdown
