@@ -59,6 +59,17 @@ OCTOPUS_MAP = {
     "OCTOPUS_ENTRY_solar_estimate": r".*_solar_estimate$",
 }
 
+# Carbon Intensity sensor keys — matched by translation_key in entity registry
+CARBON_KEYS = [
+    "national_intensity",
+    "national_index",
+    "lowest_forecast_intensity",
+    "low_carbon_percentage",
+    "fossil_percentage",
+    "generation_wind",
+    "generation_solar",
+]
+
 # SolaX entity placeholders — prefix discovered from entities matching solax_inverter_*
 SOLAX_MAP = {
     "battery_state_of_charge": "battery_state_of_charge",
@@ -76,7 +87,7 @@ SOLAX_MAP = {
 
 def load_token() -> str:
     """Read the HA long-lived access token."""
-    token_path = Path(__file__).resolve().parent.parent / ".claude" / "accessToken"
+    token_path = Path.home() / ".claude" / "accessToken"
     if not token_path.exists():
         print(f"ERROR: Token file not found at {token_path}")
         sys.exit(1)
@@ -94,6 +105,36 @@ def load_template() -> str:
         print(f"ERROR: Dashboard template not found at {template_path}")
         sys.exit(1)
     return template_path.read_text()
+
+
+def discover_carbon_entities(entities: list[dict]) -> dict[str, str]:
+    """Discover UK Carbon Intensity entities by translation_key."""
+    carbon_entities = [
+        e for e in entities if e.get("platform") == "uk_carbon_intensity"
+    ]
+
+    if not carbon_entities:
+        print("\nWARNING: No uk_carbon_intensity entities found")
+        return {}
+
+    key_to_entity = {}
+    for e in carbon_entities:
+        tkey = e.get("translation_key")
+        if tkey:
+            key_to_entity[tkey] = e["entity_id"]
+
+    print(f"\nCarbon Intensity: found {len(carbon_entities)} entities")
+    replacements: dict[str, str] = {}
+    for key in CARBON_KEYS:
+        placeholder = f"sensor.CARBON_{key}"
+        real_id = key_to_entity.get(key)
+        if real_id:
+            replacements[placeholder] = real_id
+            print(f"  CARBON_{key} -> {real_id}")
+        else:
+            print(f"  CARBON_{key} -> NOT FOUND")
+
+    return replacements
 
 
 def discover_octopus_entities(entities: list[dict]) -> dict[str, str]:
@@ -186,7 +227,7 @@ def substitute_template(template: str, replacements: dict[str, str]) -> dict:
 
     # Warn about remaining placeholders
     remaining = re.findall(
-        r"sensor\.(?:octopus_energy_OCTOPUS_\w+|SOLAX_\w+)",
+        r"sensor\.(?:octopus_energy_OCTOPUS_\w+|SOLAX_\w+|CARBON_\w+)",
         result,
     )
     if remaining:
@@ -236,6 +277,7 @@ async def deploy(token: str) -> None:
         replacements: dict[str, str] = {}
         replacements.update(discover_octopus_entities(all_entities))
         replacements.update(discover_solax_entities(all_entities))
+        replacements.update(discover_carbon_entities(all_entities))
 
         if not replacements:
             print("\nERROR: No entities discovered from any integration")

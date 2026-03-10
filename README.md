@@ -16,7 +16,7 @@ Lovelace dashboard definitions and deploy scripts for a multi-integration Home A
 ## Deploy Scripts
 
 Each dashboard has a deploy script that:
-1. Reads the HA token from `.claude/accessToken`
+1. Reads the HA token from `~/.claude/accessToken`
 2. Connects to Home Assistant via WebSocket
 3. Discovers entity IDs from the entity registry
 4. Substitutes placeholders in the dashboard YAML template
@@ -37,7 +37,7 @@ python3 scripts/deploy_solax.py
 
 ## Setup
 
-Create a `.claude/accessToken` file in the repo root containing your Home Assistant long-lived access token.
+Ensure `~/.claude/accessToken` contains your Home Assistant long-lived access token.
 
 ## Documentation
 

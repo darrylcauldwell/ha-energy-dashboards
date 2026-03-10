@@ -68,7 +68,7 @@ PREFIX = "sensor.octopus_energy_"
 
 def load_token() -> str:
     """Read the HA long-lived access token."""
-    token_path = Path(__file__).resolve().parent.parent / ".claude" / "accessToken"
+    token_path = Path.home() / ".claude" / "accessToken"
     if not token_path.exists():
         print(f"ERROR: Token file not found at {token_path}")
         sys.exit(1)

@@ -77,7 +77,7 @@ views:
                     - from: 15
                       color: green
 
-      # ── Section 2: Yesterday's Itemised Bill ─────────────────────────
+      # ── Section 2: Latest Day Itemised Bill ─────────────────────────
       - type: vertical-stack
         cards:
           - type: markdown
@@ -96,8 +96,10 @@ views:
               {%- set elec_standing = states('sensor.octopus_energy_ELECTRICITY_METER_standing_charge') | float(0) / 100 -%}
               {%- set gas_standing = states('sensor.octopus_energy_GAS_METER_gas_standing_charge') | float(0) / 100 -%}
               {%- set net = ic - export_revenue + gas_cost + elec_standing + gas_standing -%}
-              {%- set carbon = state_attr('sensor.octopus_energy_ENTRY_carbon_correlation', 'carbon_summary') %}
-              ### Yesterday's Summary — £{{ '%.2f' | format(net) }} net
+              {%- set carbon = state_attr('sensor.octopus_energy_ENTRY_carbon_correlation', 'carbon_summary') -%}
+              {%- set charges = state_attr('sensor.octopus_energy_ELECTRICITY_METER_previous_cost', 'charges') -%}
+              {%- set data_date = as_timestamp(charges[0].start) | timestamp_custom('%A %-d %B') if charges and charges | length > 0 else 'Unknown' %}
+              ### {{ data_date }} — £{{ '%.2f' | format(net) }} net
 
               | | Amount |
               |---|---:|
@@ -130,39 +132,34 @@ views:
 
           - type: markdown
             content: |
-              ### Yesterday's Half-Hourly Breakdown
               {%- set charges = state_attr('sensor.octopus_energy_ELECTRICITY_METER_previous_cost', 'charges') -%}
               {%- if charges and charges | length > 0 -%}
-              {%- set ns = namespace(total_kwh=0, total_cost=0, total_co2=0, max_cost=0, max_slot='', min_rate=999, min_slot='', max_rate=0, max_rate_slot='', min_usage=999, max_usage=0, min_co2=999, max_co2=0) -%}
+              {%- set data_date = as_timestamp(charges[0].start) | timestamp_custom('%A %-d %B') %}
+              ### Half-Hourly Breakdown — {{ data_date }}
+              {%- set ns = namespace(total_kwh=0, total_cost=0, max_cost=0, max_slot='', min_rate=999, min_slot='', max_rate=0, max_rate_slot='', min_usage=999, max_usage=0) -%}
               {%- for c in charges -%}
               {%- set ns.total_kwh = ns.total_kwh + c.consumption -%}
               {%- set ns.total_cost = ns.total_cost + c.cost -%}
-              {%- set ns.total_co2 = ns.total_co2 + c.carbon_grams -%}
               {%- if c.cost > ns.max_cost %}{% set ns.max_cost = c.cost %}{% set ns.max_slot = c.start %}{% endif -%}
               {%- if c.rate < ns.min_rate %}{% set ns.min_rate = c.rate %}{% set ns.min_slot = c.start %}{% endif -%}
               {%- if c.rate > ns.max_rate %}{% set ns.max_rate = c.rate %}{% set ns.max_rate_slot = c.start %}{% endif -%}
               {%- if c.consumption < ns.min_usage %}{% set ns.min_usage = c.consumption %}{% endif -%}
               {%- if c.consumption > ns.max_usage %}{% set ns.max_usage = c.consumption %}{% endif -%}
-              {%- if c.carbon_grams < ns.min_co2 %}{% set ns.min_co2 = c.carbon_grams %}{% endif -%}
-              {%- if c.carbon_grams > ns.max_co2 %}{% set ns.max_co2 = c.carbon_grams %}{% endif -%}
               {%- endfor -%}
               {%- set avg_rate = (ns.total_cost / ns.total_kwh * 100) if ns.total_kwh > 0 else 0 -%}
               {%- set usage_spread = ns.max_usage - ns.min_usage -%}
               {%- set usage_green = ns.min_usage + usage_spread * 0.33 -%}
-              {%- set usage_red = ns.min_usage + usage_spread * 0.66 -%}
-              {%- set co2_spread = ns.max_co2 - ns.min_co2 -%}
-              {%- set co2_green = ns.min_co2 + co2_spread * 0.33 -%}
-              {%- set co2_red = ns.min_co2 + co2_spread * 0.66 %}
+              {%- set usage_red = ns.min_usage + usage_spread * 0.66 %}
               **Most expensive slot:** {{ as_timestamp(ns.max_slot) | timestamp_custom('%H:%M') }} (£{{ '%.2f' | format(ns.max_cost) }})
               **Cheapest rate:** {{ '%.1f' | format(ns.min_rate) }}p at {{ as_timestamp(ns.min_slot) | timestamp_custom('%H:%M') }} | **Highest rate:** {{ '%.1f' | format(ns.max_rate) }}p at {{ as_timestamp(ns.max_rate_slot) | timestamp_custom('%H:%M') }}
               **Average rate paid:** {{ '%.1f' | format(avg_rate) }}p/kWh
 
-              | Time | Usage (kWh) | Rate (p/kWh) | Slot Cost | Grid CI (g/kWh) | My CO2 (g) |
-              |------|----:|-----:|-----:|----:|----:|
+              | Time | Usage (kWh) | Rate (p/kWh) | Slot Cost |
+              |------|----:|-----:|-----:|
               {%- for c in charges %}
-              | {{ as_timestamp(c.start) | timestamp_custom('%H:%M') }} | {%- if c.consumption <= usage_green %} <font color="green">{{ '%.3f' | format(c.consumption) }}</font>{%- elif c.consumption >= usage_red %} <font color="red">{{ '%.3f' | format(c.consumption) }}</font>{%- else %} <font color="orange">{{ '%.3f' | format(c.consumption) }}</font>{%- endif %} | {{ '%.1f' | format(c.rate) }}p | £{{ '%.2f' | format(c.cost) }} | {{ c.carbon_intensity }} | {%- if c.carbon_grams <= co2_green %} <font color="green">{{ '%.1f' | format(c.carbon_grams) }}</font>{%- elif c.carbon_grams >= co2_red %} <font color="red">{{ '%.1f' | format(c.carbon_grams) }}</font>{%- else %} <font color="orange">{{ '%.1f' | format(c.carbon_grams) }}</font>{%- endif %} |
+              | {{ as_timestamp(c.start) | timestamp_custom('%H:%M') }} | {%- if c.consumption <= usage_green %} <font color="green">{{ '%.3f' | format(c.consumption) }}</font>{%- elif c.consumption >= usage_red %} <font color="red">{{ '%.3f' | format(c.consumption) }}</font>{%- else %} <font color="orange">{{ '%.3f' | format(c.consumption) }}</font>{%- endif %} | {{ '%.1f' | format(c.rate) }}p | £{{ '%.2f' | format(c.cost) }} |
               {%- endfor %}
-              | **Total** | **{{ '%.1f' | format(ns.total_kwh) }}** | | **£{{ '%.2f' | format(ns.total_cost) }}** | | **{{ '%.0f' | format(ns.total_co2) }}** |
+              | **Total** | **{{ '%.1f' | format(ns.total_kwh) }}** | | **£{{ '%.2f' | format(ns.total_cost) }}** |
               {%- else %}
               *Half-hourly billing data not yet available.*
               {%- endif %}
@@ -225,30 +222,32 @@ views:
               *Upcoming rate data not yet available. Agile rates are published daily around 16:00.*
               {%- endif %}
 
-      # ── Section 5: Solar Forecast (conditional) ──────────────────────
-      - type: conditional
-        conditions:
-          - entity: sensor.octopus_energy_ACCOUNT_solar_estimate
-            state_not: unknown
-          - entity: sensor.octopus_energy_ACCOUNT_solar_estimate
-            state_not: unavailable
-        card:
-          type: vertical-stack
-          cards:
-            - type: markdown
-              content: "## Solar Forecast"
+      # ── Section 5: Solar Forecast (Solcast) ──────────────────────────
+      - type: vertical-stack
+        cards:
+          - type: markdown
+            content: "## Solar Forecast"
 
-            - type: markdown
-              content: |
-                ### Today's Solar Estimate
-                {%- set solar = states('sensor.octopus_energy_ACCOUNT_solar_estimate') %}
-                **{{ solar }} kWh** estimated today
-                {%- set estimates = state_attr('sensor.octopus_energy_ACCOUNT_solar_estimate', 'hourly_estimates') -%}
-                {%- if estimates %}
+          - type: horizontal-stack
+            cards:
+              - type: entity
+                entity: sensor.solcast_pv_forecast_forecast_today
+                name: Today
+              - type: entity
+                entity: sensor.solcast_pv_forecast_forecast_tomorrow
+                name: Tomorrow
+              - type: entity
+                entity: sensor.solcast_pv_forecast_power_now
+                name: Power Now
 
-                | Hour | kWh |
-                |------|-----|
-                {%- for e in estimates %}
-                | {{ '%02d' | format(e.hour) }}:00 | {{ '%.2f' | format(e.value) }} |
-                {%- endfor -%}
-                {%- endif %}
+          - type: markdown
+            content: |
+              {% set today = states('sensor.solcast_pv_forecast_forecast_today') | float(0) %}
+              {% set remaining = states('sensor.solcast_pv_forecast_forecast_remaining_today') | float(0) %}
+              {% set peak = states('sensor.solcast_pv_forecast_peak_forecast_today') | float(0) %}
+              {% set peak_time = states('sensor.solcast_pv_forecast_peak_time_today') %}
+              | Metric | Value |
+              |--------|-------|
+              | **Today total** | {{ today | round(1) }}kWh |
+              | **Remaining** | {{ remaining | round(1) }}kWh |
+              | **Peak** | {{ (peak / 1000) | round(1) }}kW {% if peak_time not in ['unknown', 'unavailable'] %}at {{ as_timestamp(peak_time) | timestamp_custom('%H:%M') }}{% endif %} |
