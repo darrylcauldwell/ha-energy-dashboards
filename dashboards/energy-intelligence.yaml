@@ -100,6 +100,11 @@ views:
               {% set next_rate = states('sensor.octopus_energy_OCTOPUS_IMPORT_next_rate') | float(0) %}
               {% set export_rate = states('sensor.octopus_energy_OCTOPUS_EXPORT_export_current_rate') | float(0) %}
               {% set carbon_index = states('sensor.CARBON_national_index') %}
+              {% set carbon_intensity = states('sensor.CARBON_national_intensity') | float(0) %}
+              {% set low_carbon = states('sensor.CARBON_low_carbon_percentage') | float(0) %}
+              {% set fossil = states('sensor.CARBON_fossil_percentage') | float(0) %}
+              {% set wind = states('sensor.CARBON_generation_wind') | float(0) %}
+              {% set solar_gen = states('sensor.CARBON_generation_solar') | float(0) %}
               {% set battery_power = states('sensor.SOLAX_battery_power') | float(0) %}
               {% set grid_power = states('sensor.SOLAX_grid_power') | float(0) %}
               {% set solar_now = states('sensor.solcast_pv_forecast_power_now') | float(0) %}
@@ -109,7 +114,11 @@ views:
               | **Import rate** | {{ import_rate | round(2) }} p/kWh |
               | **Next rate** | {{ next_rate | round(2) }} p/kWh |
               | **Export rate** | {{ export_rate | round(2) }} p/kWh |
-              | **Carbon index** | {{ carbon_index }} |
+              | **Carbon intensity** | {{ carbon_intensity | round(0) | int }} gCO2/kWh ({{ carbon_index }}) |
+              | **Low-carbon generation** | {{ low_carbon | round(1) }}% |
+              | **Fossil fuel** | {{ fossil | round(1) }}% |
+              | **Wind** | {{ wind | round(1) }}% |
+              | **Solar (grid)** | {{ solar_gen | round(1) }}% |
               | **Battery power** | {{ battery_power | round(0) | int }} W |
               | **Grid power** | {{ grid_power | round(0) | int }} W |
               | **Solar forecast (now)** | {{ solar_now | round(0) | int }} W |
@@ -214,23 +223,6 @@ views:
               {% elif lowest_carbon < 200 %}
               Moderate grid carbon forecast ({{ lowest_carbon | round(0) | int }}gCO2/kWh).
               {% endif %}
-
-          - type: markdown
-            content: |
-              ### Carbon Forecast
-              {% set current = states('sensor.CARBON_national_intensity') | float(0) %}
-              {% set index = states('sensor.CARBON_national_index') %}
-              {% set low_carbon = states('sensor.CARBON_low_carbon_percentage') | float(0) %}
-              {% set fossil = states('sensor.CARBON_fossil_percentage') | float(0) %}
-              {% set wind = states('sensor.CARBON_generation_wind') | float(0) %}
-              {% set solar_gen = states('sensor.CARBON_generation_solar') | float(0) %}
-              | Metric | Value |
-              |--------|-------|
-              | **Current intensity** | {{ current | round(0) | int }}gCO2/kWh ({{ index }}) |
-              | **Low-carbon generation** | {{ low_carbon | round(1) }}% |
-              | **Fossil fuel** | {{ fossil | round(1) }}% |
-              | **Wind** | {{ wind | round(1) }}% |
-              | **Solar** | {{ solar_gen | round(1) }}% |
 
       # ── Section 4: Energy Ratios ──────────────────────────────────────
       - type: vertical-stack
