@@ -69,32 +69,6 @@ views:
 
           - type: markdown
             content: |
-              ### Smart Status
-              {% set rate = states('sensor.octopus_energy_OCTOPUS_IMPORT_current_rate') | float(0) %}
-              {% set carbon_index = states('sensor.CARBON_national_index') %}
-              {% set battery_soc = states('sensor.SOLAX_battery_state_of_charge') | float(0) %}
-              {% set grid_power = states('sensor.SOLAX_grid_power') | float(0) %}
-              {% set pv1 = states('sensor.SOLAX_pv1_power') | float(0) %}
-              {% set pv2 = states('sensor.SOLAX_pv2_power') | float(0) %}
-              {% set pv_total = pv1 + pv2 %}
-              {% if grid_power < -100 %}
-              **Exporting solar surplus** ({{ (grid_power | abs) | round(0) | int }}W to grid)
-              {% elif pv_total > 500 and battery_soc < 95 %}
-              **Charging battery from solar** ({{ pv_total | round(0) | int }}W PV)
-              {% elif rate > 25 and battery_soc > 20 %}
-              **Expensive period** — using battery ({{ battery_soc | round(0) | int }}% SOC)
-              {% elif carbon_index in ['high', 'very high'] %}
-              **High carbon grid** — defer heavy loads if possible
-              {% elif rate < 10 %}
-              **Cheap period** — good time for high-demand tasks
-              {% elif carbon_index in ['low', 'very low'] %}
-              **Clean grid** — carbon intensity is {{ carbon_index }}
-              {% else %}
-              **Normal operation** — {{ rate | round(1) }}p/kWh, carbon {{ carbon_index }}
-              {% endif %}
-
-          - type: markdown
-            content: |
               ### Current Readings
               {% set import_rate = states('sensor.octopus_energy_OCTOPUS_IMPORT_current_rate') | float(0) %}
               {% set next_rate = states('sensor.octopus_energy_OCTOPUS_IMPORT_next_rate') | float(0) %}
@@ -107,8 +81,28 @@ views:
               {% set solar_gen = states('sensor.CARBON_generation_solar') | float(0) %}
               {% set battery_power = states('sensor.SOLAX_battery_power') | float(0) %}
               {% set grid_power = states('sensor.SOLAX_grid_power') | float(0) %}
+              {% set battery_soc = states('sensor.SOLAX_battery_state_of_charge') | float(0) %}
+              {% set pv1 = states('sensor.SOLAX_pv1_power') | float(0) %}
+              {% set pv2 = states('sensor.SOLAX_pv2_power') | float(0) %}
+              {% set pv_total = pv1 + pv2 %}
               {% set solar_now = states('sensor.solcast_pv_forecast_power_now') | float(0) %}
               {% set solar_remaining = states('sensor.solcast_pv_forecast_forecast_remaining_today') | float(0) %}
+              {% if grid_power < -100 %}
+              **Exporting solar surplus** ({{ (grid_power | abs) | round(0) | int }}W to grid)
+              {% elif pv_total > 500 and battery_soc < 95 %}
+              **Charging battery from solar** ({{ pv_total | round(0) | int }}W PV)
+              {% elif import_rate > 25 and battery_soc > 20 %}
+              **Expensive period** — using battery ({{ battery_soc | round(0) | int }}% SOC)
+              {% elif carbon_index in ['high', 'very high'] %}
+              **High carbon grid** — defer heavy loads if possible
+              {% elif import_rate < 10 %}
+              **Cheap period** — good time for high-demand tasks
+              {% elif carbon_index in ['low', 'very low'] %}
+              **Clean grid** — carbon intensity is {{ carbon_index }}
+              {% else %}
+              **Normal operation** — {{ import_rate | round(1) }}p/kWh, carbon {{ carbon_index }}
+              {% endif %}
+
               | | |
               |---|---:|
               | **Import rate** | {{ import_rate | round(2) }} p/kWh |
