@@ -126,10 +126,11 @@ views:
             content: |
               {% set consumption = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_consumption') | float(0) %}
               {% set cost = states('sensor.octopus_energy_OCTOPUS_IMPORT_previous_cost') | float(0) %}
-              {% set carbon = states('sensor.CARBON_national_intensity') | float(0) %}
-              | Consumption | Cost | Grid Carbon |
-              |:-----------:|:----:|:-----------:|
-              | {{ consumption | round(1) }}kWh | £{{ '%.2f' | format(cost) }} | {{ carbon | round(0) | int }} gCO2/kWh |
+              {% set intensity = states('sensor.CARBON_national_intensity') | float(0) %}
+              {% set est_co2 = consumption * intensity %}
+              | Consumption | Cost | Est. CO2 |
+              |:-----------:|:----:|:--------:|
+              | {{ consumption | round(1) }}kWh | £{{ '%.2f' | format(cost) }} | {{ est_co2 | round(0) | int }}g ({{ (est_co2 / 1000) | round(2) }}kg) |
 
           - type: markdown
             title: Carbon Analysis
